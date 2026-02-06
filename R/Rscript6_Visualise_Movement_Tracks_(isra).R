@@ -218,10 +218,10 @@ smokcol <- "#70AB27"
 szygcol <- "#E26306"
 
 ## if you need individual track colours and want to use a range of colours
-# colrange_start <- "#FFFFCC"
-# colrange_mid1 <- "#FEB24C"
-# colrange_mid2 <- "#E31A1C"
-# colrange_end <- "#800026"
+colrange_start <- "#FFFFCC"
+colrange_mid1 <- "#FEB24C"
+colrange_mid2 <- "#E31A1C"
+colrange_end <- "#800026"
 
 colrange_start <- "#FFFFCC"
 colrange_mid1 <- "#8FD900"
@@ -368,6 +368,14 @@ fed_state_boundary <- sf::st_read(dsn = file.path(misc_shapefileloc, "USA", "US_
 ### US EEZ
 eez_usa <- sf::st_read(dsn = file.path(misc_shapefileloc, "USA", "US_EEZ","eez.shp"), quiet = TRUE) # read in worldmap
 
+### ISRA suggestion global
+isra_global <- sf::st_read(dsn = file.path(misc_shapefileloc, "ISRA_suggestions_regions_4_11", "ISRA_IUCN_Mississipi_Massachusets.shp"), quiet = TRUE) # read in worldmap
+
+### ISRA Suggestion FL
+isra_fl <- sf::st_read(dsn = file.path(misc_shapefileloc, "ISRA_suggestions_regions_4_11", "ISRA_IUCN_NWA_Jupiter.shp"), quiet = TRUE) # read in worldmap
+
+### ISRA suggestion Cape Hatteras
+isra_hatteras <- sf::st_read(dsn = file.path(misc_shapefileloc, "ISRA_suggestions_regions_4_11", "ISRA_IUCN_NWA_Cape_Hatteras.shp"), quiet = TRUE) # read in worldmap
 
 ### ....................................................................................................
 ### [C] Data housekeeping and preparation ----
@@ -479,7 +487,15 @@ trackmap <- ggplot() +
   # add a symbol rather than a simple data point
   # ggimage::geom_image(aes(image = image), size = 0.1)+ # NOT READY YET
   
-  # basemap
+  # ISRA shapefile suggestions
+  ## global
+  ggplot2::geom_sf(data = isra_global|> sf::st_transform(4326), fill = "red", alpha = .25, color = "black", size = .65, inherit.aes = F) +
+  ## jupiter
+  # ggplot2::geom_sf(data = isra_fl|> sf::st_transform(4326), fill = "#78206E", alpha = .45, color = "black", size = .65, inherit.aes = F) +
+  ## cape hatteras
+  # ggplot2::geom_sf(data = isra_hatteras|> sf::st_transform(4326), fill = "#800026", alpha = .45, color = "black", size = .65, inherit.aes = F) +
+  
+  # basemap shapefile
   ggplot2::geom_sf(data = world, fill = "gray80", color = "black", size = .25, inherit.aes = F) +
   
   # raster
@@ -551,7 +567,7 @@ trackmap <- ggplot() +
   ); trackmap
 
 ## save your map
-ggsave(file.path(saveloc, paste0("Movement_tracks_CTCRW_", tracktype,"_",sp_clean,".tiff")), width = 21, height = 21, units = "cm", dpi = 300)
+ggsave(file.path(saveloc, paste0("Movement_tracks_CTCRW_", tracktype,"_",sp_clean,"_with_ISRA_core.tiff")), width = 21, height = 21, units = "cm", dpi = 300)
 
 # D2: static map - individual ----
 
@@ -591,7 +607,7 @@ for (shark_id in ind) {
     ## add movement paths
     geom_path(data = df_current,
               aes(x=lon, y=lat),
-              alpha = 1, linewidth = .5, color = "#800026") +
+              alpha = 1, linewidth = .5, color = "black") +#color = "#800026") +
     ## colour individual tracks
     # scale_color_manual(name = "Shark-ID",
     #                    values = my_color_range(colrange_start, colrange_end,
@@ -600,6 +616,14 @@ for (shark_id in ind) {
     #                    guide = "none",
     #                    drop = F) +
     
+    # ISRA shapefile suggestions
+    ## global
+    # ggplot2::geom_sf(data = isra_global|> sf::st_transform(4326), fill = "red", alpha = .25, color = "black", size = .65, inherit.aes = F) +
+    ## jupiter
+    ggplot2::geom_sf(data = isra_fl|> sf::st_transform(4326), fill = "#78206E", alpha = .45, color = "black", size = .65, inherit.aes = F) +
+    ## cape hatteras
+    ggplot2::geom_sf(data = isra_hatteras|> sf::st_transform(4326), fill = "#800026", alpha = .45, color = "black", size = .65, inherit.aes = F) +
+
     # basemap
     ggplot2::geom_sf(data = world, fill = "gray80", color = "black", size = .25, inherit.aes = F) +
     
@@ -635,7 +659,7 @@ for (shark_id in ind) {
     ggtitle(paste("Shark ID:", shark_id))
   
   # Save with shark ID in filename
-  ggsave(file.path(individual_maps_dir, paste0("Movement_tracks_CTCRW_", tracktype, "_", sp_clean, "_", shark_id, ".tiff")), 
+  ggsave(file.path(individual_maps_dir, paste0("Movement_tracks_CTCRW_", tracktype, "_", sp_clean, "_", shark_id, "_with_ISRA_core.tiff")), 
          plot = ind_trackmap,
          width = 21, height = 21, units = "cm", dpi = 300)
   
@@ -651,3 +675,44 @@ for (shark_id in ind) {
 # TODO 2: figure out federal/state water boundary for map
 # TODO 3: colour individual tracks individually
 
+#### MESSING AROUND AREA
+
+## Still needs to be put in a function requiring minimal user input
+# install.packages("magick")
+library(magick)
+library(grid)
+library(gridExtra)
+
+# Get all individual track maps
+individual_tiffs <- list.files(individual_maps_dir, 
+                               pattern = "\\.tiff$", 
+                               full.names = TRUE)
+
+# Read all images
+img_list <- lapply(individual_tiffs, function(x) {
+  img <- image_read(x)
+  # Convert to raster for ggplot
+  rasterGrob(img, interpolate = TRUE)
+})
+
+# Calculate grid dimensions
+n_images <- length(img_list)
+n_cols <- 4
+n_rows <- ceiling(n_images / n_cols)
+
+# Create the combined plot
+combined_plot <- grid.arrange(grobs = img_list, 
+                              ncol = n_cols, 
+                              nrow = n_rows)
+
+# Save the combined figure (A3 vertical: 29.7 x 42 cm)
+ggsave(file.path(individual_maps_dir, paste0("Combined_individual_tracks_", sp_clean, "_", tracktype, ".tiff")),
+       plot = combined_plot,
+       width = 29.7, 
+       height = 42, 
+       units = "cm", 
+       dpi = 300)
+
+cat("\033[32mCombined figure saved successfully!\033[0m\n")
+cat(paste("Total maps combined:", n_images, "\n"))
+cat(paste("Grid layout:", n_rows, "rows x", n_cols, "columns\n"))
