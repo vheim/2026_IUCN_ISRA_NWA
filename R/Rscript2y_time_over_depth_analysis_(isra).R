@@ -22,7 +22,7 @@
 rm(list = ls())
 
 ## if you are working on a network server
-YOUR_IP <- "192.168.1.144" # add your IP address, server name or similar if you connect via a shared drive
+YOUR_IP <- "NA" # add your IP address, server name or similar if you connect via a shared drive
 
 ## remove potential tmp.tif file from previous session
 if (file.exists("tmp.tif")) file.remove("tmp.tif")
@@ -45,6 +45,7 @@ if (file.exists("tmp.tif")) file.remove("tmp.tif")
 # install.packages("ggplot2")
 # install.packages("shape")
 # install.packages("fields")
+# install.packages("shadowtext")
 # install.packages("marmap")
 
 ## load packages and source needed functions
@@ -62,6 +63,7 @@ library(data.table)
 library(ggplot2)
 library(shape)
 library(fields)
+library(shadowtext)
 library(marmap)
 
 # A3: Specify needed functions ----
@@ -479,7 +481,7 @@ for (i in seq_along(ids)) {
 
 # D1: plot TAT horizontally for each species
 
-## plot for each species individuall
+## plot for each species individually
 for (spp_f in unique(tod_hammers$species)) {
   
   ## prepare new directory for plots
@@ -529,7 +531,31 @@ for (spp_f in unique(tod_hammers$species)) {
          tod_plot$tod_mean + tod_plot$tod_sd , bp_tod,
          lwd = 1, angle = 90,
          code = 3, length = 0.05)
-
+  
+  ## add % as text at right end of bars
+  for (j in seq_along(bp_tod)) {
+    label <- sprintf("%.1f%%", tod_plot$tod_mean[j])
+    x_pos <- tod_plot$tod_mean[j]
+    y_pos <- bp_tod[j]
+    arrow_end <- tod_plot$tod_mean[j] + tod_plot$tod_sd[j]
+    
+    w <- strwidth(label, cex = 0.55) * 1.6
+    h <- strheight(label, cex = 0.55) * 1.6
+    gap <- .25
+    
+    if (arrow_end >= 100) {
+      text_x <- x_pos - gap - w - strwidth(" ", cex = 0.55) * 2  # gap left of bar end
+    } else {
+      text_x <- arrow_end + gap  # gap right of arrow end
+    }
+    
+    rect(text_x + strwidth(" ", cex = 0.55), y_pos - h/2,
+         text_x + strwidth(" ", cex = 0.55) + w, y_pos + h/2,
+         col = alpha("white", 1), border = "black")
+    
+    text(x = text_x, y = y_pos, labels = label, pos = 4, cex = 0.55, col = "black")
+  }
+  
   ## label vertical axis
   axis(2, at = bp_tod, labels = plot_labels, cex.axis = 0.65, tck = -0.035, las = 1) # tickmarks and labels
 
