@@ -183,7 +183,7 @@ select_species <- function(df, species_col = "species") {
 
 # A4: Specify data and saveloc ----
 
-YOUR_IP <- "NA" # add your IP address, server name or similar if you connect via a shared drive
+YOUR_IP <- "192.168.1.144" # add your IP address, server name or similar if you connect via a shared drive
 
 ## Project folder
 projloc <- file.path("/",YOUR_IP, "Science","Projects_current", "2026_IUCN_ISRA_NWA")
@@ -218,15 +218,15 @@ smokcol <- "#70AB27"
 szygcol <- "#E26306"
 
 ## if you need individual track colours and want to use a range of colours
-colrange_start <- "#FFFFCC"
-colrange_mid1 <- "#FEB24C"
-colrange_mid2 <- "#E31A1C"
-colrange_end <- "#800026"
-
-colrange_start <- "#FFFFCC"
-colrange_mid1 <- "#8FD900"
-colrange_mid2 <- "#0F9D00"
-colrange_end <- "#006B29"
+# colrange_start <- "#FFFFCC"
+# colrange_mid1 <- "#FEB24C"
+# colrange_mid2 <- "#E31A1C"
+# colrange_end <- "#800026"
+# 
+# colrange_start <- "#FFFFCC"
+# colrange_mid1 <- "#8FD900"
+# colrange_mid2 <- "#0F9D00"
+# colrange_end <- "#006B29"
 
 # A6: Define universal options, variables, etc. (e.g. for plotting) ----
 
@@ -309,7 +309,8 @@ mov_tracks %<>%
 # world <- sf::st_read(dsn = paste0(shapefileloc,"/",res,"/GSHHS_", res, "_L1.shp"), layer = paste0("GSHHS_", res, "_L1"), quiet = TRUE) # read in worldmap
 
 ## World shapefile - LQ
-world <- rnaturalearth::ne_countries(scale = 10, returnclass = "sf")
+# world <- rnaturalearth::ne_countries(scale = 10, returnclass = "sf")
+world <- sf::st_read(dsn = file.path(misc_shapefileloc, "World", "GSHHS_shp", "f", "GSHHS_f_L1.shp"), quiet = TRUE) # read in worldmap
 
 # *B2.2: Bathymetry maps and other rasters ----
 
@@ -350,7 +351,7 @@ raster.df <- as.data.frame(bathyR, xy = T)
 
 ## prep for TERRA PACKAGE.....
 bathyterra <- terra::rast(bathyR)
-plot(bathyterra)
+# plot(bathyterra)
 
 # *B2.2: Other shapefiles, e.g. EEZ or closure boundaries ----
 
@@ -363,19 +364,18 @@ plot(bathyterra)
 usstates <- sf::st_read(dsn = file.path(misc_shapefileloc, "USA", "US_State_Boundaries", "US_State_Boundaries.shp"), quiet = TRUE) # read in worldmap
 
 ### Federal vs. state waters USA
-fed_state_boundary <- sf::st_read(dsn = file.path(misc_shapefileloc, "USA", "US_Federal_State_Waters", "Federal_Waters.shp"), quiet = TRUE) # read in worldmap
+# fed_state_boundary <- sf::st_read(dsn = file.path(misc_shapefileloc, "USA", "US_Federal_State_Waters", "Federal_Waters.shp"), quiet = TRUE) # read in worldmap
 
 ### US EEZ
 eez_usa <- sf::st_read(dsn = file.path(misc_shapefileloc, "USA", "US_EEZ","eez.shp"), quiet = TRUE) # read in worldmap
 
-### ISRA suggestion global
-isra_global <- sf::st_read(dsn = file.path(misc_shapefileloc, "ISRA_suggestions_regions_4_11", "ISRA_IUCN_Mississipi_Massachusets.shp"), quiet = TRUE) # read in worldmap
-
-### ISRA Suggestion FL
-isra_fl <- sf::st_read(dsn = file.path(misc_shapefileloc, "ISRA_suggestions_regions_4_11", "ISRA_IUCN_NWA_Jupiter.shp"), quiet = TRUE) # read in worldmap
-
-### ISRA suggestion Cape Hatteras
-isra_hatteras <- sf::st_read(dsn = file.path(misc_shapefileloc, "ISRA_suggestions_regions_4_11", "ISRA_IUCN_NWA_Cape_Hatteras.shp"), quiet = TRUE) # read in worldmap
+### ISRA suggestions 
+#### SLEW
+isra_slew <- sf::st_read(dsn = file.path(misc_shapefileloc, "ISRA_suggestions_regions_4_11", "pAoI_ISRA_region4_C4_Slewini.shp"), quiet = TRUE) # read in worldmap
+#### SMOK
+isra_smok <- sf::st_read(dsn = file.path(misc_shapefileloc, "ISRA_suggestions_regions_4_11", "pAoI_ISRA_region4_C4_Smokarran.shp"), quiet = TRUE) # read in worldmap
+#### SZYG
+isra_szyg <- sf::st_read(dsn = file.path(misc_shapefileloc, "ISRA_suggestions_regions_4_11", "pAoI_ISRA_region4_C4_Szygaena.shp"), quiet = TRUE) # read in worldmap
 
 ### ....................................................................................................
 ### [C] Data housekeeping and preparation ----
@@ -489,11 +489,7 @@ trackmap <- ggplot() +
   
   # ISRA shapefile suggestions
   ## global
-  ggplot2::geom_sf(data = isra_global|> sf::st_transform(4326), fill = "red", alpha = .25, color = "black", size = .65, inherit.aes = F) +
-  ## jupiter
-  # ggplot2::geom_sf(data = isra_fl|> sf::st_transform(4326), fill = "#78206E", alpha = .45, color = "black", size = .65, inherit.aes = F) +
-  ## cape hatteras
-  # ggplot2::geom_sf(data = isra_hatteras|> sf::st_transform(4326), fill = "#800026", alpha = .45, color = "black", size = .65, inherit.aes = F) +
+  # ggplot2::geom_sf(data = isra_global|> sf::st_transform(4326), fill = "red", alpha = .25, color = "black", size = .65, inherit.aes = F) +
   
   # basemap shapefile
   ggplot2::geom_sf(data = world, fill = "gray80", color = "black", size = .25, inherit.aes = F) +
@@ -584,6 +580,21 @@ for (shark_id in ind) {
   # Filter data for current shark
   df_current <- df_plot[df_plot$shark == shark_id, ]
   
+  # Select ISRA shapefile and fill colour based on species
+  shark_species <- unique(df_current$species)
+  
+  isra_sp <- switch(shark_species,
+                    "S.lewini"  = isra_slew,
+                    "S.mokarran" = isra_smok,
+                    "S.zygaena" = isra_szyg
+  )
+  
+  isra_col <- switch(shark_species,
+                     "S.lewini"  = slewcol,
+                     "S.mokarran" = smokcol,
+                     "S.zygaena" = szygcol
+  )
+  
   # Create plot for current shark
   ind_trackmap <- ggplot() +
     
@@ -617,13 +628,9 @@ for (shark_id in ind) {
     #                    drop = F) +
     
     # ISRA shapefile suggestions
-    ## global
-    # ggplot2::geom_sf(data = isra_global|> sf::st_transform(4326), fill = "red", alpha = .25, color = "black", size = .65, inherit.aes = F) +
-    ## jupiter
-    ggplot2::geom_sf(data = isra_fl|> sf::st_transform(4326), fill = "#78206E", alpha = .45, color = "black", size = .65, inherit.aes = F) +
-    ## cape hatteras
-    ggplot2::geom_sf(data = isra_hatteras|> sf::st_transform(4326), fill = "#800026", alpha = .45, color = "black", size = .65, inherit.aes = F) +
-
+    # ISRA shapefile - species-specific
+    ggplot2::geom_sf(data = isra_sp |> sf::st_transform(4326), fill = isra_col, alpha = .75, color = "black", size = .65, inherit.aes = F) +
+    
     # basemap
     ggplot2::geom_sf(data = world, fill = "gray80", color = "black", size = .25, inherit.aes = F) +
     
@@ -659,7 +666,7 @@ for (shark_id in ind) {
     ggtitle(paste("Shark ID:", shark_id))
   
   # Save with shark ID in filename
-  ggsave(file.path(individual_maps_dir, paste0("Movement_tracks_CTCRW_", tracktype, "_", sp_clean, "_", shark_id, "_with_ISRA_core.tiff")), 
+  ggsave(file.path(individual_maps_dir, paste0("Movement_tracks_CTCRW_", tracktype, "_", sp_clean, "_", shark_id, "_with_pAoI_ISRA_C4.tiff")), 
          plot = ind_trackmap,
          width = 21, height = 21, units = "cm", dpi = 300)
   
