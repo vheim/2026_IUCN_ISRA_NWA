@@ -183,7 +183,7 @@ select_species <- function(df, species_col = "species") {
 
 # A4: Specify data and saveloc ----
 
-YOUR_IP <- "192.168.1.144" # add your IP address, server name or similar if you connect via a shared drive
+YOUR_IP <- "NA" # add your IP address, server name or similar if you connect via a shared drive
 
 ## Project folder
 projloc <- file.path("/",YOUR_IP, "Science","Projects_current", "2026_IUCN_ISRA_NWA")
